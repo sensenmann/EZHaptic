@@ -18,14 +18,14 @@ public:
 
     EZHaptic(uint8_t motorPin, timer_group_t group = TIMER_GROUP_0, timer_idx_t idx = TIMER_0);
 
-    void begin();
+    bool begin();
     void playRepeated(const String& pattern, int frequencyMs, int repeatCount);
     void play(const String& pattern, int frequencyMs = 0);
     void stop();
 
 
 private:
-    void initTimer();
+    bool initTimer();
     static void IRAM_ATTR onTimer(void* arg);
     void handleStep();
     void executeChar(char c);

@@ -6,14 +6,14 @@ EZHaptic::EZHaptic(uint8_t motorPin, timer_group_t group, timer_idx_t idx)
       _index(0), _isPlaying(false), _frequencyMs(250) { // Standardwert
 }
 
-void EZHaptic::begin() {
+bool EZHaptic::begin() {
     // PWM initialisieren
     ledcSetup(_pwmChannel, _pwmFrequency, _pwmResolution);
     ledcAttachPin(_motorPin, _pwmChannel);
     ledcWrite(_pwmChannel, 0);
 
     // Timer vorbereiten (aber noch nicht starten)
-    initTimer();
+    return initTimer();
 }
 
 void EZHaptic::playRepeated(const String& pattern, int frequencyMs, int repeatCount) {
@@ -52,7 +52,8 @@ void EZHaptic::stop() {
     _isPlaying = false;
 }
 
-void EZHaptic::initTimer() {
+bool EZHaptic::initTimer() {
+    EZ_LOG_CLASS();
     timer_config_t config = {
         .alarm_en = TIMER_ALARM_EN,
         .counter_en = TIMER_PAUSE,
@@ -61,12 +62,42 @@ void EZHaptic::initTimer() {
         .auto_reload = TIMER_AUTORELOAD_EN,
         .divider = 80  // 80 MHz / 80 = 1 µs Takt
     };
-    timer_init(_timerGroup, _timerIdx, &config);
-    timer_set_counter_value(_timerGroup, _timerIdx, 0);
-    timer_set_alarm_value(_timerGroup, _timerIdx, TIMER_INTERVAL_US);
-    timer_enable_intr(_timerGroup, _timerIdx);
-    timer_isr_register(_timerGroup, _timerIdx, onTimer,
-                       this, ESP_INTR_FLAG_IRAM, nullptr);
+
+    esp_err_t err;
+
+    err = timer_init(_timerGroup, _timerIdx, &config);
+    if (err != ESP_OK) {
+        Log::errorln("timer_init() failed: " + String(esp_err_to_name(err)));
+        return false;
+    }
+
+    err = timer_set_counter_value(_timerGroup, _timerIdx, 0);
+    if (err != ESP_OK) {
+        Log::errorln("timer_set_counter_value() failed: " + String(esp_err_to_name(err)));
+        return false;
+    }
+
+    err = timer_set_alarm_value(_timerGroup, _timerIdx, TIMER_INTERVAL_US);
+    if (err != ESP_OK) {
+        Log::errorln("timer_set_alarm_value() failed: " + String( esp_err_to_name(err)));
+        return false;
+    }
+
+    err = timer_enable_intr(_timerGroup, _timerIdx);
+    if (err != ESP_OK) {
+        Log::errorln("timer_enable_intr() failed: " + String(esp_err_to_name(err)));
+        return false;
+    }
+
+    err = timer_isr_register(_timerGroup, _timerIdx, onTimer,
+                             this, ESP_INTR_FLAG_IRAM, nullptr);
+    if (err != ESP_OK) {
+        Log::errorln("timer_isr_register() failed: " + String(esp_err_to_name(err)));
+        return false;
+    }
+
+    Log::debugln("Timer erfolgreich initialisiert");
+    return true;
 }
 
 void IRAM_ATTR EZHaptic::onTimer(void* arg) {
