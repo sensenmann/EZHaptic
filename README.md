@@ -57,11 +57,12 @@ EZHaptic(uint8_t motorPin, timer_group_t group = TIMER_GROUP_0, timer_idx_t idx 
 
 ### Public Methods
 
-| Method | Description |
-|--------|-------------|
-| `begin()` | Initializes PWM and timer |
-| `play(String pattern)` | Starts pattern execution |
-| `stop()` | Stops current pattern |
+| Method                                                 | Description                                          |
+|--------------------------------------------------------|------------------------------------------------------|
+| `begin`                                                | Initializes PWM and timer                            |
+| `play`                                                 | Starts pattern execution                             |
+| `playRepeated`                                         | Starts pattern execution with given repetition count |
+| `stop`                                                 | Stops current pattern                                |
 
 ## Pattern Language
 
